@@ -1,0 +1,62 @@
+ignoredisk --only-use=vda
+
+# System bootloader configuration
+bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=vda
+autopart --type=lvm
+
+clearpart --all --initlabel --drives=vda
+
+text
+
+# DVD INSTALL
+#cdrom
+
+# HTTP INSTALL
+#url --url="http://mirror.umd.edu/centos/8/BaseOS/x86_64/os/"
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts=''
+
+# System language
+lang en_US.UTF-8
+
+# Network information
+network  --bootproto=dhcp --onboot=on --ipv6=auto --activate
+network  --hostname=@HOSTNAME@
+
+# DVD INSTALL
+#repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
+
+# Root password
+rootpw --iscrypted @ROOTPW_HASH@
+
+# Run the Setup Agent on first boot
+firstboot --enable
+
+# Do not configure the X Window System
+skipx
+
+# System services
+services --enabled="chronyd"
+
+# System timezone
+timezone America/New_York --isUtc
+
+reboot
+
+%packages
+@core
+chrony
+kexec-tools
+
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
+
+%anaconda
+pwpolicy root --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+pwpolicy user --minlen=6 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+%end

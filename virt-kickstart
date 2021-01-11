@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# TODO:
+# * exit hook for tmp file cleanup
+# * add ssh key to vm
+# * better location handling
+# * consistent nic device naming (ens2 vs ...)
+#   - https://unix.stackexchange.com/questions/134483/why-is-my-ethernet-interface-called-enp0s10-instead-of-eth0
+#
+# NOTES:
+# * kickstart docs for centos 8:
+#   - https://docs.centos.org/en-US/8-docs/advanced-install/assembly_kickstart-commands-and-options-reference/
+# * if you do a DVD install, you get a e1000 nic with xxx2 device name,
+#   but a http install gets a virtio nic with xxxxx device name. Not sure
+#   why the difference, but if you set --network "model=virtio", then you
+#   also have to set other network params (ex. bridge=).
+# * when dev=ens2,   bus-info=0000:00:02.0
+# * when dev=enp1s0, bus-info=0000:01:00.0
+
+function usage {
+  echo "$(basename $0) [OPTIONS] HOSTNAME" >&2
+  echo >&2
+  echo "  -b BRIDGE    use BRIDGE" >&2
+  echo "  -c VALUE     virtual cpus" >&2
+  echo "  -d VALUE     disk size in MB" >&2
+  echo "  -h           show usage information" >&2
+  echo "  -k FILE      kickstart file" >&2
+  echo "  -l LOCATION  get instalation files from LOCATION" >&2
+  echo "  -m VALUE     vm memory in MB" >&2
+}
+
+DEFAULT_LOCATION='CentOS-8.2.2004-x86_64-dvd1.iso'
+
+DEFAULT_MEMORY='4096'
+DEFAULT_VCPUS=1
+DEFAULT_DISK_SIZE='20'
+DEFAULT_KS_TMPL="c8.tmpl"
+DEFAULT_BRIDGE='virbr0'
+
+LOCATION="${DEFAULT_LOCATION}"
+MEMORY=$DEFAULT_MEMORY
+VCPUS=$DEFAULT_VCPUS
+LOCATION=$DEFAULT_LOCATION
+DISK_SIZE=$DEFAULT_DISK_SIZE
+KS_TMPL="${DEFAULT_KS_TMPL}"
+BRIDGE="${DEFAULT_BRIDGE}"
+
+optstring=":b:c:d:hk:l:m:"
+
+while getopts ${optstring} arg; do
+  case ${arg} in
+    b)
+      BRIDGE="${OPTARG}"
+      ;;
+    c)
+      VCPUS="${OPTARG}"
+      ;;
+    d)
+      DISK_SIZE="${OPTARG}"
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    k)
+      KS_TMPL="${OPTARG}"
+      ;;
+    l)
+      LOCATION="${OPTARG}"
+      ;;
+    m)
+      MEMORY="${OPTARG}"
+      ;;
+    :)
+      echo "$0: Must supply an argument to -$OPTARG." >&2
+      exit 1
+      ;;
+    ?)
+      echo "Invalid option: -${OPTARG}."
+      usage
+      exit 2
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
+HOSTNAME=$1
+if [ -z "$HOSTNAME" ]; then
+  echo "Missing hostname argument" 2>&1
+  usage
+  exit 1
+fi
+
+KS_FILE=$(mktemp ${HOSTNAME}.XXXXXXXX.ks) || exit 1
+
+echo "Please set a root password for ${HOSTNAME}:"
+ROOTPW_HASH=$(python3 -c "import crypt,getpass;pw=getpass.getpass();print(crypt.crypt(pw) if (pw==getpass.getpass('Confirm: ')) else exit())")
+
+#
+# Do parameter replacement in kickstart template
+#
+sed -e "s|@HOSTNAME@|${HOSTNAME}|g" \
+    -e "s|@ROOTPW_HASH@|${ROOTPW_HASH}|g" \
+    "$KS_TMPL" > "$KS_FILE"
+
+INITRD_INJECT="$KS_FILE"
+EXTRA_ARGS="console=ttyS0 ks=file:/$(basename $KS_FILE)"
+
+echo "HOSTNAME: ${HOSTNAME}"
+echo "MEMORY: ${MEMORY}"
+echo "DISK_SIZE: ${DISK_SIZE}"
+echo "CPUS: ${VCPUS}"
+echo "LOCATION: ${LOCATION}"
+echo "INITRD_INJECT: ${INITRD_INJECT}"
+echo "EXTRA_ARGS: ${EXTRA_ARGS}"
+
+
+virt-install \
+  -n "$HOSTNAME" \
+  --memory "$MEMORY" \
+  --vcpus "$VCPUS" \
+  --network "model=virtio,bridge=${BRIDGE}" \
+  --location "$LOCATION" \
+  --disk size="$DISK_SIZE,bus=virtio" \
+  --graphics none \
+  --extra-args="${EXTRA_ARGS}" \
+  --initrd-inject="${INITRD_INJECT}"
+
+# FIXME: do an exit hook
+rm -v "$KS_FILE"
