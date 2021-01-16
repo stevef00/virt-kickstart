@@ -18,7 +18,7 @@
 # * when dev=enp1s0, bus-info=0000:01:00.0
 
 function usage {
-  echo "$(basename $0) [OPTIONS] HOSTNAME" >&2
+  echo "$(basename "$0") [OPTIONS] HOSTNAME" >&2
   echo >&2
   echo "  -b BRIDGE    use BRIDGE" >&2
   echo "  -c VALUE     virtual cpus" >&2
@@ -91,7 +91,7 @@ if [ -z "$HOSTNAME" ]; then
   exit 1
 fi
 
-KS_FILE=$(mktemp ${HOSTNAME}.XXXXXXXX.ks) || exit 1
+KS_FILE=$(mktemp "${HOSTNAME}.XXXXXXXX.ks") || exit 1
 
 echo "Please set a root password for ${HOSTNAME}:"
 ROOTPW_HASH=$(python3 -c "import crypt,getpass;pw=getpass.getpass();print(crypt.crypt(pw) if (pw==getpass.getpass('Confirm: ')) else exit())")
@@ -104,7 +104,7 @@ sed -e "s|@HOSTNAME@|${HOSTNAME}|g" \
     "$KS_TMPL" > "$KS_FILE"
 
 INITRD_INJECT="$KS_FILE"
-EXTRA_ARGS="console=ttyS0 ks=file:/$(basename $KS_FILE)"
+EXTRA_ARGS="console=ttyS0 ks=file:/$(basename "$KS_FILE")"
 
 echo "HOSTNAME: ${HOSTNAME}"
 echo "MEMORY: ${MEMORY}"
