@@ -21,6 +21,7 @@ function usage {
   echo "$(basename "$0") [OPTIONS] HOSTNAME" >&2
   echo >&2
   echo "  -b BRIDGE    use BRIDGE" >&2
+  echo "  -C           use cloud-init" >&2
   echo "  -c VALUE     virtual cpus" >&2
   echo "  -d VALUE     disk size in MB" >&2
   echo "  -h           show usage information" >&2
@@ -46,13 +47,19 @@ DISK_SIZE=$DEFAULT_DISK_SIZE
 KS_TMPL="${DEFAULT_KS_TMPL}"
 BRIDGE="${DEFAULT_BRIDGE}"
 NOREBOOT=
+USE_CLOUD_INIT=
+META_DATA=
+USER_DATA=
 
-optstring=":b:c:d:hk:l:m:n"
+optstring=":b:Cc:d:hk:l:M:m:nU:"
 
 while getopts ${optstring} arg; do
   case ${arg} in
     b)
       BRIDGE="${OPTARG}"
+      ;;
+    C)
+      USE_CLOUD_INIT=1
       ;;
     c)
       VCPUS="${OPTARG}"
@@ -70,11 +77,25 @@ while getopts ${optstring} arg; do
     l)
       LOCATION="${OPTARG}"
       ;;
+    M)
+      META_DATA="${OPTARG}"
+      if [ ! -e "${META_DATA}" ]; then
+        echo "error: ${META_DATA} does not exist" >&2
+        exit 1
+      fi
+      ;;
     m)
       MEMORY="${OPTARG}"
       ;;
     n)
       NOREBOOT="--noreboot"
+      ;;
+    U)
+      USER_DATA="${OPTARG}"
+      if [ ! -e "${USER_DATA}" ]; then
+        echo "error: ${USER_DATA} does not exist" >&2
+        exit 1
+      fi
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -94,6 +115,32 @@ if [ -z "$HOSTNAME" ]; then
   echo "Missing hostname argument" 2>&1
   usage
   exit 1
+fi
+
+# USE_CLOUD_INIT requires META_DATA and USER_DATA
+if [ -n "${USE_CLOUD_INIT}" ]; then
+  if [ -z "${META_DATA}" ]; then
+    echo "error: cloud-init requires meta_data" >&2
+    exit 1
+  fi
+  if [ -z "${USER_DATA}" ]; then
+    echo "error: cloud-init requires user_data" >&2
+    exit 1
+  fi
+
+  # create cloud-init disk image
+  # FIXME - CI_FILE shouldn't be in PWD
+  CI_FILE=$(mktemp "${HOSTNAME}.XXXXXXXX.cidata") || exit 1
+  dd if=/dev/zero of="${CI_FILE}" bs=1M count=1
+  mkfs.vfat "${CI_FILE}"
+  mlabel -i "${CI_FILE}" ::cidata
+  mcopy -i "${CI_FILE}" "${META_DATA}" ::meta-data
+  mcopy -i "${CI_FILE}" "${USER_DATA}" ::user-data
+
+  CIDATA_DISK="--disk path=${CI_FILE},bus=virtio"
+
+  # USE_CLOUD_INIT implies that NOREBOOT is unset
+  NOREBOOT=
 fi
 
 KS_FILE=$(mktemp "${HOSTNAME}.XXXXXXXX.ks") || exit 1
@@ -127,10 +174,19 @@ virt-install \
   --network "model=virtio,bridge=${BRIDGE}" \
   --location "$LOCATION" \
   --disk size="$DISK_SIZE,bus=virtio" \
+  ${CIDATA_DISK} \
   --graphics none \
   --extra-args="${EXTRA_ARGS}" \
   --initrd-inject="${INITRD_INJECT}" \
-  "${NOREBOOT}"
+  ${NOREBOOT}
+
+#  --disk path="$CI_FILE" \
+# ${parameter:+word}
 
 # FIXME: do an exit hook
 rm -v "$KS_FILE"
+if [ -n "${USE_CLOUD_INIT}" ]; then
+  # FIXME - CI_FILE shouldn't be in PWD
+  virsh detach-disk "${HOSTNAME}" "${PWD}/${CI_FILE}" --persistent
+  #rm -v "${CI_FILE}"
+fi
