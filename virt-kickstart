@@ -27,6 +27,7 @@ function usage {
   echo "  -k FILE      kickstart file" >&2
   echo "  -l LOCATION  get instalation files from LOCATION" >&2
   echo "  -m VALUE     vm memory in MB" >&2
+  echo "  -n           no reboot after install" >&2
 }
 
 DEFAULT_LOCATION='CentOS-8.2.2004-x86_64-dvd1.iso'
@@ -44,8 +45,9 @@ LOCATION=$DEFAULT_LOCATION
 DISK_SIZE=$DEFAULT_DISK_SIZE
 KS_TMPL="${DEFAULT_KS_TMPL}"
 BRIDGE="${DEFAULT_BRIDGE}"
+NOREBOOT=
 
-optstring=":b:c:d:hk:l:m:"
+optstring=":b:c:d:hk:l:m:n"
 
 while getopts ${optstring} arg; do
   case ${arg} in
@@ -70,6 +72,9 @@ while getopts ${optstring} arg; do
       ;;
     m)
       MEMORY="${OPTARG}"
+      ;;
+    n)
+      NOREBOOT="--noreboot"
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -124,7 +129,8 @@ virt-install \
   --disk size="$DISK_SIZE,bus=virtio" \
   --graphics none \
   --extra-args="${EXTRA_ARGS}" \
-  --initrd-inject="${INITRD_INJECT}"
+  --initrd-inject="${INITRD_INJECT}" \
+  "${NOREBOOT}"
 
 # FIXME: do an exit hook
 rm -v "$KS_FILE"
