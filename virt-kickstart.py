@@ -10,6 +10,8 @@ import getopt, sys
 import tempfile
 import os
 import crypt, getpass
+import random
+
 
 DEFAULT_LOCATION = "https://mirror.umd.edu/centos/8/BaseOS/x86_64/os/"
 
@@ -31,19 +33,25 @@ def usage():
     eprint("  -c VALUE     virtual cpus")
     eprint("  -d VALUE     disk size in MB")
     eprint("  -h           show usage information")
+    eprint("  -i IP        use IP for static dhcp map")
     eprint("  -I FILE      use disk image")
     eprint("  -k FILE      kickstart file")
     eprint("  -l LOCATION  get instalation files from LOCATION")
     eprint("  -m VALUE     vm memory in MB")
     eprint("  -n           no reboot after install")
 
+def random_mac():
+    return "52:54:00:%02x:%02x:%02x" % (random.randint(0, 255),
+                                        random.randint(0, 255),
+                                        random.randint(0, 255))
+
 def main():
 
     try:
         opts, args = getopt.getopt(
                 sys.argv[1:],
-                "b:Cc:d:hI:k:l:M:m:nU:",
-                ["bridge=", "cloud-init", "cpus", "disk-size", "help", "image=", "kickstart=", "location=", "meta-data=", "memory=", "noreboot", "user-data"]
+                "b:Cc:d:hI:i:k:l:M:m:nU:",
+                ["bridge=", "cloud-init", "cpus", "disk-size", "help", "image=", "ipaddr=", "kickstart=", "location=", "meta-data=", "memory=", "noreboot", "user-data"]
             )
     except getopt.GetoptError as err:
         eprint(err)
@@ -64,6 +72,7 @@ def main():
     noreboot = False
     meta_data = None
     user_data = None
+    ipaddr = None
 
     for o, a in opts:
         if o in ("-b", "--bridge"):
@@ -80,6 +89,9 @@ def main():
         elif o in ("-I", "--image-file"):
             image_file = a
             # FIXME - check that image_file exists
+        elif o in ("-i", "--ipaddr"):
+            ipaddr = a
+            # FIXME - check that ipaddr is correctly formatted
         elif o in ("-k", "--kickstart"):
             kickstart_file = a
             # FIXME - check that kickstart_file exists
@@ -107,6 +119,7 @@ def main():
     hostname = args[0]
 
     #print("hostname: '%s'" % hostname)
+    #print("ipaddr: '%s'" % ipaddr)
     #print("bridge: '%s'" % bridge)
     #print("use_cloud_init: '%s'" % use_cloud_init)
     #print("vcpus: '%s'" % vcpus)
@@ -118,6 +131,44 @@ def main():
     #print("noreboot: '%s'" % noreboot)
     #print("meta_data: '%s'" % meta_data)
     #print("user_data: '%s'" % user_data)
+
+    mac = random_mac()
+
+    if ipaddr:
+        # make a static mapping
+        net_update_options = [
+            'virsh',
+            'net-update',
+            'default',
+            'add',
+            'ip-dhcp-host',
+            f'''"<host mac='{mac}' name='{hostname}' ip='{ipaddr}' />"''',
+            '--live',
+            '--config',
+        ]
+        net_update_cmd = ' '.join(net_update_options)
+        eprint(net_update_cmd)
+        res = os.system(net_update_cmd)
+        if (res >> 8 != 0):
+            eprint("ERROR: setting static dhcp entry (%d)" % (res >> 8))
+            os.exit(1)
+
+        net_update_options = [
+            'virsh',
+            'net-update',
+            'default',
+            'add',
+            'dns-host',
+            f'''"<host ip='{ipaddr}'><hostname>{hostname}</hostname></host>"''',
+            '--live',
+            '--config',
+        ]
+        net_update_cmd = ' '.join(net_update_options)
+        eprint(net_update_cmd)
+        res = os.system(net_update_cmd)
+        if (res >> 8 != 0):
+            eprint("ERROR: setting static dns-host entry (%d)" % (res >> 8))
+            os.exit(1)
 
     # USE_CLOUD_INIT requires META_DATA and USER_DATA
     if use_cloud_init:
@@ -183,7 +234,7 @@ def main():
     virt_install_options.append(vcpus)
 
     virt_install_options.append('--network')
-    virt_install_options.append("model=virtio,bridge=%s" % bridge)
+    virt_install_options.append("model=virtio,bridge=%s,mac=%s" % (bridge, mac))
 
     virt_install_options.append('--disk')
     virt_install_options.append(primary_disk)
