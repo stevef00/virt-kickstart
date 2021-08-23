@@ -270,6 +270,10 @@ def main():
 
     if use_cloud_init:
         res = os.system(f"virsh detach-disk {hostname} {ci_filename} --persistent")
+        if (res >> 8 != 0):
+            eprint("ERROR: removing cidata device (%d)" % (res >> 8))
+            os.exit(1)
+
 
 if __name__ == "__main__":
     main()
