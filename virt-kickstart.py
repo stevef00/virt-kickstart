@@ -274,6 +274,12 @@ def main():
             eprint("ERROR: removing cidata device (%d)" % (res >> 8))
             os.exit(1)
 
+        # if using cloud-init, the default user-data does a poweroff so we have to restart the vm
+        res = os.system(f"virsh start {hostname}")
+        if (res >> 8 != 0):
+            eprint("ERROR: removing cidata device (%d)" % (res >> 8))
+            os.exit(1)
+
 
 if __name__ == "__main__":
     main()
