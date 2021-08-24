@@ -68,7 +68,6 @@ def main():
     location = DEFAULT_LOCATION
     memory = DEFAULT_MEMORY
     image_file = None
-    kickstart_file = None
     noreboot = False
     meta_data = None
     user_data = None
@@ -93,8 +92,8 @@ def main():
             ipaddr = a
             # FIXME - check that ipaddr is correctly formatted
         elif o in ("-k", "--kickstart"):
-            kickstart_file = a
-            # FIXME - check that kickstart_file exists
+            ks_template = a
+            # FIXME - check that ks_template exists
         elif o in ("-l", "--location"):
             location = a
         elif o in ("-M", "--meta-data"):
