@@ -150,7 +150,7 @@ def main():
         res = os.system(net_update_cmd)
         if (res >> 8 != 0):
             eprint("ERROR: setting static dhcp entry (%d)" % (res >> 8))
-            os.exit(1)
+            sys.exit(1)
 
         net_update_options = [
             'virsh',
@@ -167,7 +167,7 @@ def main():
         res = os.system(net_update_cmd)
         if (res >> 8 != 0):
             eprint("ERROR: setting static dns-host entry (%d)" % (res >> 8))
-            os.exit(1)
+            sys.exit(1)
 
     # USE_CLOUD_INIT requires META_DATA and USER_DATA
     if use_cloud_init:
@@ -271,13 +271,13 @@ def main():
         res = os.system(f"virsh detach-disk {hostname} {ci_filename} --persistent")
         if (res >> 8 != 0):
             eprint("ERROR: removing cidata device (%d)" % (res >> 8))
-            os.exit(1)
+            sys.exit(1)
 
         # if using cloud-init, the default user-data does a poweroff so we have to restart the vm
         res = os.system(f"virsh start {hostname}")
         if (res >> 8 != 0):
             eprint("ERROR: removing cidata device (%d)" % (res >> 8))
-            os.exit(1)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
