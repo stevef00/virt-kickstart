@@ -217,7 +217,7 @@ def main():
 
         primary_disk = "size=%s,bus=virtio" % disk_size
         initrd_inject = ks_filename
-        extra_args = "'console=ttyS0 inst.ks=file:/%s'" % os.path.basename(ks_filename)
+        extra_args = "'console=ttyS0 inst.ks=file:/%s inst.repo=%s'" % (os.path.basename(ks_filename), location)
 
     
     virt_install_options = ['virt-install']
