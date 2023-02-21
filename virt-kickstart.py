@@ -18,7 +18,6 @@ DEFAULT_LOCATION = "https://mirror.umd.edu/centos/8/BaseOS/x86_64/os/"
 DEFAULT_MEMORY = "4096"
 DEFAULT_VCPUS = "1"
 DEFAULT_DISK_SIZE = "20"
-DEFAULT_KS_TMPL = "c8.tmpl"
 DEFAULT_BRIDGE = "virbr0"
 DEFAULT_KS_TEMPLATE = "c8.tmpl"
 
