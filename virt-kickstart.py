@@ -13,13 +13,13 @@ import crypt, getpass
 import random
 
 
-DEFAULT_LOCATION = "https://mirror.umd.edu/centos/8/BaseOS/x86_64/os/"
+DEFAULT_LOCATION = 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/'
 
 DEFAULT_MEMORY = "4096"
 DEFAULT_VCPUS = "1"
 DEFAULT_DISK_SIZE = "20"
 DEFAULT_BRIDGE = "virbr0"
-DEFAULT_KS_TEMPLATE = "c8.tmpl"
+DEFAULT_KS_TEMPLATE = "kickstart/alma9.tmpl"
 
 
 def eprint(*args, **kwargs):
