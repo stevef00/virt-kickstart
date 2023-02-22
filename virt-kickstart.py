@@ -213,7 +213,12 @@ def main():
             sys.exit(1)
 
         # do tmpl param replacement
-        res = os.system("sed -e 's|@HOSTNAME@|%s|g' -e 's|@ROOTPW_HASH@|%s|g' %s > %s" % (hostname, rootpw_hash, ks_template, ks_filename))
+        sed_str = ' '.join(["sed",
+            "-e 's|@HOSTNAME@|%s|g'",
+            "-e 's|@ROOTPW_HASH@|%s|g'",
+            "-e 's|@LOCATION@|%s|g'",
+            "%s > %s"])
+        res = os.system(sed_str % (hostname, rootpw_hash, location, ks_template, ks_filename))
 
         primary_disk = "size=%s,bus=virtio" % disk_size
         initrd_inject = ks_filename
