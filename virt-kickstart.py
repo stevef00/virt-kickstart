@@ -5,6 +5,8 @@
 # * if the cloud-init user-data does a power-off, then the vm will be down and should
 #   be started
 # * a config file would be nice for the DEFAULT_* settings
+# * relative file references should be resolved relative to a datadir
+# * add a debug/verbose option to dump some state and print various progress steps 
 
 import getopt, sys
 import tempfile
@@ -12,15 +14,24 @@ import os
 import crypt, getpass
 import random
 
+FLAVORS = {
+  'alma8': {
+      'os_variant': 'centos8',
+      'location': 'https://mirrors.ocf.berkeley.edu/almalinux/8/BaseOS/x86_64/os/',
+      'kickstart': 'kickstart/alma.tmpl',
+  },
+  'alma9': {
+      'os_variant': 'centos8',
+      'location': 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/',
+      'kickstart': 'kickstart/alma.tmpl',
+  },
+}
 
-DEFAULT_LOCATION = 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/'
-
+DEFAULT_FLAVOR = 'alma8'
 DEFAULT_MEMORY = "4096"
 DEFAULT_VCPUS = "1"
 DEFAULT_DISK_SIZE = "20"
 DEFAULT_BRIDGE = "virbr0"
-DEFAULT_KS_TEMPLATE = "kickstart/alma9.tmpl"
-
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -31,6 +42,7 @@ def usage():
     eprint("  -C           use cloud-init")
     eprint("  -c VALUE     virtual cpus")
     eprint("  -d VALUE     disk size in MB")
+    eprint("  -F FLAVOR    use defaults for FLAVOR (default: %s)" % DEFAULT_FLAVOR)
     eprint("  -h           show usage information")
     eprint("  -i IP        use IP for static dhcp map")
     eprint("  -I FILE      use disk image")
@@ -38,6 +50,7 @@ def usage():
     eprint("  -l LOCATION  get instalation files from LOCATION")
     eprint("  -m VALUE     vm memory in MB")
     eprint("  -n           no reboot after install")
+    eprint("  -o OS        use OS as os_variant (default: %s" % FLAVORS[DEFAULT_FLAVOR]['os_variant'])
 
 def random_mac():
     return "52:54:00:%02x:%02x:%02x" % (random.randint(0, 255),
@@ -49,8 +62,8 @@ def main():
     try:
         opts, args = getopt.getopt(
                 sys.argv[1:],
-                "b:Cc:d:hI:i:k:l:M:m:nU:",
-                ["bridge=", "cloud-init", "cpus", "disk-size", "help", "image=", "ipaddr=", "kickstart=", "location=", "meta-data=", "memory=", "noreboot", "user-data"]
+                "b:Cc:d:F:hI:i:k:l:M:m:no:U:",
+                ["bridge=", "cloud-init", "cpus", "disk-size", "flavor=", "help", "image=", "ipaddr=", "kickstart=", "location=", "meta-data=", "memory=", "os-variant=", "noreboot", "user-data"]
             )
     except getopt.GetoptError as err:
         eprint(err)
@@ -60,17 +73,19 @@ def main():
     use_location = True
     use_cloud_init = False
 
-    ks_template = DEFAULT_KS_TEMPLATE
+    flavor = DEFAULT_FLAVOR
+    ks_template = None
     bridge = DEFAULT_BRIDGE
     vcpus = DEFAULT_VCPUS
     disk_size = DEFAULT_DISK_SIZE
-    location = DEFAULT_LOCATION
+    location = None
     memory = DEFAULT_MEMORY
     image_file = None
     noreboot = False
     meta_data = None
     user_data = None
     ipaddr = None
+    os_variant = None
 
     for o, a in opts:
         if o in ("-b", "--bridge"):
@@ -102,12 +117,28 @@ def main():
             memory = a
         elif o in ("-n", "--noreboot"):
             noreboot = True
+        elif o in ("-o", "--os-variant"):
+            os_variant = a
         elif o in ("-U", "--user-data"):
             user_data = a
             # FIXME - check that user_data file exists
+        elif o in ("-F", "--flavor"):
+            flavor = a
+
         else:
             assert False, "unhandled option"
 
+    # we now need to untangle any weirdness with the setting of
+    # flavor and the settings that are tangled up with it:
+    # ks_template, locationg, os_variant
+    if ks_template is None:
+        ks_template = FLAVORS[flavor]['kickstart']
+
+    if location is None:
+        location = FLAVORS[flavor]['location']
+
+    if os_variant is None:
+        os_variant = FLAVORS[flavor]['os_variant']
 
     # args should be a list contain a single time: the vm name
     if (len(args) != 1):
@@ -226,6 +257,9 @@ def main():
 
     
     virt_install_options = ['virt-install']
+
+    virt_install_options.append('--os-variant')
+    virt_install_options.append(os_variant)
 
     virt_install_options.append('--name')
     virt_install_options.append(hostname)

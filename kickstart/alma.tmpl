@@ -21,8 +21,7 @@ keyboard --vckeymap=us --xlayouts=''
 lang en_US.UTF-8
 
 # Network information
-network  --bootproto=dhcp --onboot=on --ipv6=auto --activate
-network  --hostname=@HOSTNAME@
+network  --hostname=@HOSTNAME@ --bootproto=dhcp --onboot=on --ipv6=auto --activate
 
 # DVD INSTALL
 #repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
