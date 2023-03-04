@@ -13,6 +13,7 @@ import tempfile
 import os
 import crypt, getpass
 import random
+import re
 
 FLAVORS = {
   'alma8': {
@@ -25,6 +26,11 @@ FLAVORS = {
       'location': 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/',
       'kickstart': 'kickstart/alma.tmpl',
   },
+  'ubuntu20.04': {
+      'os_variant': 'ubuntu20.04',
+      'location': 'https://mirrors.bloomu.edu/ubuntu/dists/focal/main/installer-amd64/',
+      'kickstart': 'kickstart/ubuntu.tmpl',
+  }
 }
 
 DEFAULT_FLAVOR = 'alma8'
@@ -243,18 +249,40 @@ def main():
             eprint("error: passwords don't match")
             sys.exit(1)
 
+        # for ubuntu, the @LOCATION@ should be the 'base' of the ubuntu tree.
+        # ex. https://mirror.com/ubuntu
+        #
+        match = re.search(r'ubuntu', os_variant)
+        if match:
+            match = re.search(r'(^.*/)dists/', location)
+            if match:
+                tmpl_location = match.group(1)
+            else:
+                eprint("ERROR: location URL doesn't look right") # FIXME: ???
+                sys.exit(1)
+        else:
+            tmpl_location = location
+
         # do tmpl param replacement
         sed_str = ' '.join(["sed",
             "-e 's|@HOSTNAME@|%s|g'",
             "-e 's|@ROOTPW_HASH@|%s|g'",
             "-e 's|@LOCATION@|%s|g'",
             "%s > %s"])
-        res = os.system(sed_str % (hostname, rootpw_hash, location, ks_template, ks_filename))
+        res = os.system(sed_str % (hostname, rootpw_hash, tmpl_location, ks_template, ks_filename))
 
         primary_disk = "size=%s,bus=virtio" % disk_size
         initrd_inject = ks_filename
-        extra_args = "'console=ttyS0 inst.ks=file:/%s inst.repo=%s'" % (os.path.basename(ks_filename), location)
 
+        # we have to change the inst.xxx to just xxx for ubuntu
+        if re.match(r'ubuntu', os_variant):
+            inst_repo = "repo=%s" % location
+            inst_ks = "ks=file:/%s" % os.path.basename(ks_filename)
+        else:
+            inst_repo = "inst.repo=%s" % location
+            inst_ks = "inst.ks=file:/%s" % os.path.basename(ks_filename)
+
+        extra_args = "'console=ttyS0 %s %s'" % (inst_ks, inst_repo)
     
     virt_install_options = ['virt-install']
 

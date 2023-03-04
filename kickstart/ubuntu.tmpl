@@ -1,0 +1,89 @@
+# Load the minimal server preseed off cdrom
+#preseed preseed/file string /cdrom/preseed/ubuntu-server-minimalvm.seed
+
+# OPTIONAL: Change hostname from default 'preseed'
+# If your DHCP hands out a hostname that will take precedence over this
+# see: https://bugs.launchpad.net/ubuntu/+source/preseed/+bug/1452202
+preseed netcfg/hostname string @HOSTNAME@
+
+#System language
+lang en_US
+
+#Language modules to install
+langsupport en_US
+
+#System keyboard
+keyboard us
+
+#System mouse
+mouse
+
+#System timezone
+timezone America/New_York
+
+#Root password
+rootpw --iscrypted @ROOTPW_HASH@
+
+#Initial user
+user --disabled
+
+#Reboot after installation
+reboot
+
+#Use text mode install
+text
+
+#Install OS instead of upgrade
+install
+url --url="@LOCATION@"
+
+#Installation media
+cdrom
+
+#Change console size to 1024x768x24
+preseed debian-installer/add-kernel-opts string "vga=792"
+
+#System bootloader configuration
+#bootloader --location=mbr
+bootloader --location=mbr # --append="console=tty0 console=ttyS0,115200n8"
+
+#Clear the Master Boot Record
+zerombr yes
+
+#Partitioning
+clearpart --all --initlabel --drives=vda
+part /boot   --size 256    --asprimary  --fstype xfs
+part /       --size 1      --asprimary  --fstype xfs  --grow
+part swap    --size=2048                --fstype=swap
+
+# Don't install recommended items by default
+# This will also be set for built system at
+# /etc/apt/apt.conf.d/00InstallRecommends
+preseed base-installer/install-recommends boolean false
+
+#System authorization infomation
+auth --useshadow
+
+# Network information
+network  --hostname=@HOSTNAME@ --bootproto=dhcp --device=auto
+
+#Do not configure the X Window System
+skipx
+
+%packages
+vim
+#software-properties-common
+# -- pretty much required --
+gpg-agent  # apt-key needs this when piping certs in through stdin
+curl
+openssh-server
+net-tools  # this includes commands like ifconfig and netstat
+wget
+man
+cloud-init
+
+%post
+#! /bin/sh
+sed -i "s/^GRUB_CMDLINE_LINUX=/GRUB_CMDLINE_LINUX=\"console=tty1 console=ttyS0,115200 biosdevname=0 net.ifnames=0\"/" \
+  /etc/default/grub
+update-grub2
