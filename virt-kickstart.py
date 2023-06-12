@@ -38,6 +38,7 @@ DEFAULT_MEMORY = "4096"
 DEFAULT_VCPUS = "1"
 DEFAULT_DISK_SIZE = "20"
 DEFAULT_BRIDGE = "virbr0"
+DEFAULT_KERNEL_ARGS = "console=ttyS0"
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -57,6 +58,7 @@ def usage():
     eprint("  -m VALUE     vm memory in MB")
     eprint("  -n           no reboot after install")
     eprint("  -o OS        use OS as os_variant (default: %s" % FLAVORS[DEFAULT_FLAVOR]['os_variant'])
+    eprint("  -x ARGS      add extra args to kernel command line")
 
 def random_mac():
     return "52:54:00:%02x:%02x:%02x" % (random.randint(0, 255),
@@ -68,8 +70,8 @@ def main():
     try:
         opts, args = getopt.getopt(
                 sys.argv[1:],
-                "b:Cc:d:F:hI:i:k:l:M:m:no:U:",
-                ["bridge=", "cloud-init", "cpus", "disk-size", "flavor=", "help", "image=", "ipaddr=", "kickstart=", "location=", "meta-data=", "memory=", "os-variant=", "noreboot", "user-data"]
+                "b:Cc:d:F:hI:i:k:l:M:m:no:U:x:",
+                ["bridge=", "cloud-init", "cpus", "disk-size", "flavor=", "help", "image=", "ipaddr=", "kickstart=", "location=", "meta-data=", "memory=", "os-variant=", "noreboot", "user-data", "extra-args"]
             )
     except getopt.GetoptError as err:
         eprint(err)
@@ -92,6 +94,7 @@ def main():
     user_data = None
     ipaddr = None
     os_variant = None
+    extra_kernel_args = None
 
     for o, a in opts:
         if o in ("-b", "--bridge"):
@@ -130,7 +133,8 @@ def main():
             # FIXME - check that user_data file exists
         elif o in ("-F", "--flavor"):
             flavor = a
-
+        elif o in ("-x", "--extra-args"):
+            extra_kernel_args = a
         else:
             assert False, "unhandled option"
 
@@ -145,6 +149,11 @@ def main():
 
     if os_variant is None:
         os_variant = FLAVORS[flavor]['os_variant']
+
+    if extra_kernel_args is None:
+        extra_kernel_args = DEFAULT_KERNEL_ARGS
+    else:
+        extra_kernel_args = "%s %s" % (DEFAULT_KERNEL_ARGS, extra_kernel_args)
 
     # args should be a list contain a single time: the vm name
     if (len(args) != 1):
@@ -282,7 +291,7 @@ def main():
             inst_repo = "inst.repo=%s" % location
             inst_ks = "inst.ks=file:/%s" % os.path.basename(ks_filename)
 
-        extra_args = "'console=ttyS0 %s %s'" % (inst_ks, inst_repo)
+        extra_kernel_args = "'%s %s %s'" % (extra_kernel_args, inst_ks, inst_repo)
     
     virt_install_options = ['virt-install']
 
@@ -319,9 +328,9 @@ def main():
         virt_install_options.append('--initrd-inject')
         virt_install_options.append(initrd_inject)
 
-    if 'extra_args' in locals():
+    if 'extra_kernel_args' in locals():
         virt_install_options.append('--extra-args')
-        virt_install_options.append(extra_args)
+        virt_install_options.append(extra_kernel_args)
 
     virt_install_cmd = ' '.join(virt_install_options)
     #print(virt_install_cmd)
