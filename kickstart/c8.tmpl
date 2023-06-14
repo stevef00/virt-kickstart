@@ -12,7 +12,7 @@ text
 #cdrom
 
 # HTTP INSTALL
-#url --url="@LOCATION@"
+#url --url="{{ location }}"
 
 # Keyboard layouts
 keyboard --vckeymap=us --xlayouts=''
@@ -22,13 +22,13 @@ lang en_US.UTF-8
 
 # Network information
 network  --bootproto=dhcp --onboot=on --ipv6=auto --activate
-network  --hostname=@HOSTNAME@
+network  --hostname={{ hostname }}
 
 # DVD INSTALL
 #repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
 
 # Root password
-rootpw --iscrypted @ROOTPW_HASH@
+rootpw --iscrypted {{ rootpw_hash }}
 
 # Run the Setup Agent on first boot
 firstboot --enable

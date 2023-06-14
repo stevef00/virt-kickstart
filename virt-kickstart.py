@@ -15,6 +15,23 @@ import crypt, getpass
 import random
 import re
 
+from jinja2 import Environment, BaseLoader, TemplateNotFound
+from os.path import join, exists, getmtime
+
+# the FileSystemLoader wants templates to be relative to some searchpath
+# this is probably a good idea, but for now I'd rather let the user just
+# pass in a file name and load it directly
+class MyLoader(BaseLoader):
+
+    def get_source(self, environment, template):
+        if not exists(template):
+            raise TemplateNotFound(template)
+        mtime = getmtime(template)
+        with open(template) as f:
+            source = f.read()
+        return source, template, lambda: mtime == getmtime(template)
+
+
 FLAVORS = {
   'alma8': {
       'os_variant': 'centos8',
@@ -64,6 +81,16 @@ def random_mac():
     return "52:54:00:%02x:%02x:%02x" % (random.randint(0, 255),
                                         random.randint(0, 255),
                                         random.randint(0, 255))
+
+def render_tmpl(tmpl_file, output_file, context):
+    environment = Environment(loader=MyLoader())
+    template = environment.get_template(tmpl_file)
+
+    content = template.render(context)
+
+    with open(output_file, mode="w", encoding="utf-8") as output:
+        output.write(content)
+        eprint("wrote template: %s" % output_file)
 
 def main():
 
@@ -272,13 +299,12 @@ def main():
         else:
             tmpl_location = location
 
-        # do tmpl param replacement
-        sed_str = ' '.join(["sed",
-            "-e 's|@HOSTNAME@|%s|g'",
-            "-e 's|@ROOTPW_HASH@|%s|g'",
-            "-e 's|@LOCATION@|%s|g'",
-            "%s > %s"])
-        res = os.system(sed_str % (hostname, rootpw_hash, tmpl_location, ks_template, ks_filename))
+        context = {
+                'hostname': hostname,
+                'rootpw_hash': rootpw_hash,
+                'location': tmpl_location
+        }
+        render_tmpl(ks_template, ks_filename, context)
 
         primary_disk = "size=%s,bus=virtio" % disk_size
         initrd_inject = ks_filename

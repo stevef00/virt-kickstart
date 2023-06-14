@@ -4,7 +4,7 @@
 # OPTIONAL: Change hostname from default 'preseed'
 # If your DHCP hands out a hostname that will take precedence over this
 # see: https://bugs.launchpad.net/ubuntu/+source/preseed/+bug/1452202
-preseed netcfg/hostname string @HOSTNAME@
+preseed netcfg/hostname string {{ hostname }}
 
 #System language
 lang en_US
@@ -22,7 +22,7 @@ mouse
 timezone America/New_York
 
 #Root password
-rootpw --iscrypted @ROOTPW_HASH@
+rootpw --iscrypted {{ rootpw_hash }}
 
 #Initial user
 user --disabled
@@ -35,7 +35,7 @@ text
 
 #Install OS instead of upgrade
 install
-url --url="@LOCATION@"
+url --url="{{ location }}"
 
 #Installation media
 cdrom
@@ -65,7 +65,7 @@ preseed base-installer/install-recommends boolean false
 auth --useshadow
 
 # Network information
-network  --hostname=@HOSTNAME@ --bootproto=dhcp --device=auto
+network  --hostname={{ hostname }} --bootproto=dhcp --device=auto
 
 #Do not configure the X Window System
 skipx
@@ -75,6 +75,7 @@ vim
 #software-properties-common
 # -- pretty much required --
 gpg-agent  # apt-key needs this when piping certs in through stdin
+gpg
 curl
 openssh-server
 net-tools  # this includes commands like ifconfig and netstat
