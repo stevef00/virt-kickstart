@@ -34,12 +34,12 @@ class MyLoader(BaseLoader):
 
 FLAVORS = {
   'alma8': {
-      'os_variant': 'centos8',
+      'os_variant': 'almalinux8',
       'location': 'https://mirrors.ocf.berkeley.edu/almalinux/8/BaseOS/x86_64/os/',
       'kickstart': 'kickstart/alma.tmpl',
   },
   'alma9': {
-      'os_variant': 'centos8',
+      'os_variant': 'almalinux9',
       'location': 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/',
       'kickstart': 'kickstart/alma.tmpl',
   },
