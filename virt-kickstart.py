@@ -45,7 +45,7 @@ FLAVORS = {
   },
   'fedora39': {
       'os_variant': 'fedora39',
-      'location': 'https://mirrors.ocf.berkeley.edu/fedora/fedora/linux/releases/39/Server/x86_64/os/',
+      'location': 'https://mirror.math.princeton.edu/pub/fedora/linux/releases/39/Everything/x86_64/os/',
       'kickstart': 'kickstart/fedora.tmpl',
   },
   'ubuntu20.04': {
