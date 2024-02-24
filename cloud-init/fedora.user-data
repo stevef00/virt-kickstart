@@ -1,0 +1,35 @@
+#cloud-config
+
+power_state:
+  mode: poweroff
+  message: Bye Bye
+  timeout: 30
+  condition: True
+
+# NOTE: have to have a user, or you get the 'default' user, which is named after the OS (ex. almalinux)
+users:
+  - name: steve
+    gecos: Steve Feehan
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMF08YeUcj8sXelW0p7nnQbl9wueJYP+0yt9/sMdr2nq steve@home
+
+#yum_repos:
+#    epel:
+#        baseurl: https://mirror.umd.edu/fedora/epel/$releasever/Everything/$basearch
+#        name: Extra Packages for Enterprise Linux $releasever - $basearch
+#        enabled: true
+#        gpg-check: true
+#        gpgkey: https://mirror.umd.edu/fedora/epel/RPM-GPG-KEY-EPEL-$releasever
+
+packages:
+  - bc
+  - bind-utils
+  - git-core
+  - nc
+  - neovim
+  - rsync
+  - tmux
+  - vim-enhanced
+  - wget
+
