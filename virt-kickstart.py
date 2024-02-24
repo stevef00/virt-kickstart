@@ -43,6 +43,11 @@ FLAVORS = {
       'location': 'https://mirrors.ocf.berkeley.edu/almalinux/9/BaseOS/x86_64/os/',
       'kickstart': 'kickstart/alma.tmpl',
   },
+  'fedora39': {
+      'os_variant': 'fedora39',
+      'location': 'https://mirrors.ocf.berkeley.edu/fedora/fedora/linux/releases/39/Server/x86_64/os/',
+      'kickstart': 'kickstart/fedora.tmpl',
+  },
   'ubuntu20.04': {
       'os_variant': 'ubuntu20.04',
       'location': 'https://mirrors.bloomu.edu/ubuntu/dists/focal/main/installer-amd64/',

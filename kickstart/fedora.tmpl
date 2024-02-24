@@ -1,0 +1,58 @@
+ignoredisk --only-use=vda
+
+# System bootloader configuration
+bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=vda
+autopart --type=lvm
+
+clearpart --all --initlabel --drives=vda
+
+text
+
+# DVD INSTALL
+#cdrom
+
+# HTTP INSTALL
+url --url="{{ location }}"
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts=''
+
+# System language
+lang en_US.UTF-8
+
+# Network information
+network  --hostname={{ hostname }} --bootproto=dhcp --onboot=on --ipv6=auto --activate
+
+# DVD INSTALL
+#repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
+
+# Use the 'minimal' authselect policy
+authselect select minimal
+
+# Root password
+rootpw --iscrypted {{ rootpw_hash }}
+
+# Run the Setup Agent on first boot
+firstboot --enable
+
+# Do not configure the X Window System
+skipx
+
+# System services
+services --enabled="chronyd"
+
+# System timezone
+timezone America/New_York --isUtc
+
+reboot
+
+%packages
+@core
+chrony
+kexec-tools
+
+%end
+
+#%addon com_redhat_kdump --enable --reserve-mb='auto'
+#
+#%end
