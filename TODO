@@ -1,0 +1,11 @@
+* [DONE] FEATURE: add fedora 39 support
+* TEST: test cloud-init for all OSs
+  - alma8: OK (redo with shared user-data)
+  - alma9: OK (redo with shared user-data)
+  - fedora39: OK
+* DOC: document dependencies for:
+  - Fedora 39
+  - Ubuntu ?
+* DOC: add README file
+* FEATURE: generate cloud-init meta-data file
+* BUG: fail if a file (ex. user-data, meta-data) doesn't exist
