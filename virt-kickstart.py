@@ -11,7 +11,8 @@
 import getopt, sys
 import tempfile
 import os
-import crypt, getpass
+import getpass
+from passlib.hash import sha512_crypt
 import random
 import re
 
@@ -285,7 +286,7 @@ def main():
         eprint("Please set a root password for %s: " % hostname)
         rootpw = getpass.getpass()
         if rootpw == getpass.getpass('Confirm: '):
-            rootpw_hash = crypt.crypt(rootpw)
+            rootpw_hash = sha512_crypt.hash(rootpw)
         else:
             eprint("error: passwords don't match")
             sys.exit(1)
