@@ -49,6 +49,16 @@ FLAVORS = {
       'location': 'https://mirror.math.princeton.edu/pub/fedora/linux/releases/39/Everything/x86_64/os/',
       'kickstart': 'kickstart/fedora.tmpl',
   },
+  'fedora40': {
+      'os_variant': 'fedora40',
+      'location': 'https://mirror.math.princeton.edu/pub/fedora/linux/releases/40/Everything/x86_64/os/',
+      'kickstart': 'kickstart/fedora.tmpl',
+  },
+  'fedora41': {
+      'os_variant': 'fedora40',
+      'location': 'https://ftp-osl.osuosl.org/pub/fedora/linux/releases/41/Everything/x86_64/os/',
+      'kickstart': 'kickstart/fedora.tmpl',
+  },
   'ubuntu20.04': {
       'os_variant': 'ubuntu20.04',
       'location': 'https://mirrors.bloomu.edu/ubuntu/dists/focal/main/installer-amd64/',
